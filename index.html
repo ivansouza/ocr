@@ -169,14 +169,14 @@ async function loadModels() {
     statusEl.className = 'model-status loading';
     statusEl.innerHTML = '<div class="spinner"></div><span>Carregando modelo de detecção...</span>';
     
-    detSession = await ort.InferenceSession.create(baseUrl + '/tiny_det.onnx', {
+    detSession = await ort.InferenceSession.create('/ocr/tiny_det.onnx', {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all'
     });
     
     statusEl.innerHTML = '<div class="spinner"></div><span>Carregando modelo de reconhecimento...</span>';
     
-    recSession = await ort.InferenceSession.create(baseUrl + '/tiny_rec.onnx', {
+    recSession = await ort.InferenceSession.create('/ocr/tiny_rec.onnx', {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all'
     });
