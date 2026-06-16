@@ -2,45 +2,48 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OCR Comprovante — PP-OCRv6 no Browser</title>
-<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.21.0/dist/ort.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OCR Comprovante — PP-OCRv6</title>
 <style>
   :root {
     --bg: #0f172a; --surface: #1a2332; --surface2: #243044;
     --ink: #f1f5f9; --body: #94a3b8; --muted: #64748b;
-    --line: #2d3a4e; --accent: #06b6d4; --green: #10b981; --amber: #f59e0b; --red: #ef4444;
+    --line: #2d3a4e; --accent: #06b6d4; --accent2: #8b5cf6;
+    --green: #10b981; --amber: #f59e0b; --red: #ef4444;
     --radius: 12px;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     background: var(--bg); color: var(--body); min-height: 100vh;
-    padding: 1.5rem 1rem;
+    padding: 2rem 1rem;
   }
   .container { max-width: 800px; margin: 0 auto; }
-  header { text-align: center; margin-bottom: 1.5rem; }
-  header h1 { font-size: 1.5rem; font-weight: 700; color: var(--ink); }
+
+  header { text-align: center; margin-bottom: 2rem; }
+  header h1 { font-size: 1.6rem; font-weight: 700; color: var(--ink); }
   header p { color: var(--muted); font-size: 0.85rem; margin-top: 0.3rem; }
 
   .card {
     background: var(--surface); border: 1px solid var(--line);
-    border-radius: var(--radius); padding: 1.25rem; margin-bottom: 1rem;
+    border-radius: var(--radius); padding: 1.5rem; margin-bottom: 1rem;
   }
   .card h2 { font-size: 1rem; color: var(--ink); margin-bottom: 0.75rem; }
 
   .upload-area {
     border: 2px dashed var(--line); border-radius: var(--radius);
-    padding: 2rem 1rem; text-align: center; cursor: pointer;
+    padding: 2.5rem 1rem; text-align: center; cursor: pointer;
     transition: all .2s; position: relative;
   }
-  .upload-area:hover, .upload-area.dragover { border-color: var(--accent); background: rgba(6,182,212,0.05); }
+  .upload-area:hover, .upload-area.dragover {
+    border-color: var(--accent); background: rgba(6,182,212,0.05);
+  }
   .upload-area .icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
   .upload-area p { font-size: 0.9rem; color: var(--muted); }
   .upload-area input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 
-  .preview-area { display: none; margin-top: 1rem; text-align: center; }
-  .preview-area img { max-width: 100%; max-height: 300px; border-radius: 8px; }
+  .preview-area { display: none; margin-top: 1rem; }
+  .preview-area img { max-width: 100%; max-height: 300px; border-radius: 8px; display: block; margin: 0 auto; }
 
   .btn {
     display: inline-flex; align-items: center; gap: 0.5rem;
@@ -68,37 +71,31 @@
 
   .field {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 0.5rem 0; border-bottom: 1px solid var(--line);
+    padding: 0.6rem 0; border-bottom: 1px solid var(--line);
   }
   .field:last-child { border-bottom: none; }
-  .field .label { font-size: 0.78rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
-  .field .value { font-size: 0.88rem; color: var(--ink); font-weight: 500; text-align: right; max-width: 60%; word-break: break-all; }
+  .field .label { font-size: 0.8rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .field .value { font-size: 0.9rem; color: var(--ink); font-weight: 500; text-align: right; max-width: 60%; word-break: break-all; }
 
-  .text-lines { margin-top: 0.75rem; max-height: 400px; overflow-y: auto; }
+  .text-lines { margin-top: 1rem; }
   .text-line {
     display: flex; align-items: center; gap: 0.5rem;
-    padding: 0.25rem 0; font-size: 0.8rem; font-family: monospace;
+    padding: 0.3rem 0; font-size: 0.82rem; font-family: monospace;
   }
-  .text-line .conf-bar {
-    width: 50px; height: 5px; border-radius: 3px; background: var(--line); flex-shrink: 0; overflow: hidden;
+  .text-line .conf {
+    width: 60px; height: 6px; border-radius: 3px; background: var(--line); flex-shrink: 0;
+    overflow: hidden;
   }
-  .text-line .conf-bar .fill { height: 100%; border-radius: 3px; }
-  .text-line .conf-bar .fill.high { background: var(--green); }
-  .text-line .conf-bar .fill.mid { background: var(--amber); }
-  .text-line .conf-bar .fill.low { background: var(--red); }
+  .text-line .conf .bar { height: 100%; border-radius: 3px; transition: width .3s; }
+  .text-line .conf .bar.high { background: var(--green); }
+  .text-line .conf .bar.mid { background: var(--amber); }
+  .text-line .conf .bar.low { background: var(--red); }
 
-  .model-status {
-    display: flex; align-items: center; gap: 0.5rem;
-    padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.8rem;
-    margin-bottom: 0.75rem;
-  }
-  .model-status.loading { background: rgba(6,182,212,0.1); color: var(--accent); }
-  .model-status.ready { background: rgba(16,185,129,0.1); color: var(--green); }
-  .model-status.error { background: rgba(239,68,68,0.1); color: var(--red); }
+  .actions { display: flex; gap: 0.5rem; margin-top: 1rem; flex-wrap: wrap; }
 
   @media (max-width: 640px) {
     body { padding: 1rem 0.75rem; }
-    header h1 { font-size: 1.2rem; }
+    header h1 { font-size: 1.3rem; }
     .card { padding: 1rem; }
   }
 </style>
@@ -108,15 +105,10 @@
 
 <header>
   <h1>📄 OCR Comprovante</h1>
-  <p>PP-OCRv6 Small — 100% no navegador via ONNX Runtime Web</p>
+  <p>PP-OCRv6 — Reconhecimento de texto em comprovantes</p>
 </header>
 
 <div class="card">
-  <div class="model-status" id="modelStatus">
-    <div class="spinner"></div>
-    <span>Carregando modelos ONNX...</span>
-  </div>
-
   <h2>📷 Imagem</h2>
   <div class="upload-area" id="uploadArea">
     <input type="file" accept="image/*" id="fileInput">
@@ -127,7 +119,9 @@
     <img id="preview">
   </div>
   <div style="margin-top:1rem;text-align:center;">
-    <button class="btn btn-primary" id="btnProcess" disabled>🔍 Extrair texto</button>
+    <button class="btn btn-primary" id="btnProcess" disabled>
+      🔍 Extrair texto
+    </button>
   </div>
   <div class="status-bar" id="statusBar">
     <div class="spinner"></div>
@@ -138,400 +132,122 @@
 <div class="card result-grid" id="resultCard">
   <h2>🔎 Dados Extraídos</h2>
   <div id="fieldsContainer"></div>
-  <h2 style="margin-top:1.25rem;">📝 Texto Completo</h2>
+
+  <h2 style="margin-top:1.5rem;">📝 Texto Completo</h2>
   <div class="text-lines" id="textLines"></div>
+
+  <div class="actions">
+    <button class="btn btn-primary" id="btnCopy">📋 Copiar texto</button>
+  </div>
 </div>
 
 </div>
 
 <script>
-// ===== CONSTANTES DO MODELO =====
-// Média e std do pré-processamento PaddleOCR
-const MEAN = [0.485, 0.456, 0.406];
-const STD = [0.229, 0.224, 0.225];
+  let currentFile = null;
 
-// Character dictionary do PP-OCRv6 (extraído do inference.yml)
-const CHARS = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz¢£¤¥¦§¨©ª«¬®¯°±²³´µ¶·¸¹º»¼½¾¿ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÐÑÒÓÔÕÖ×ØÙÚÛÜÝÞßàáâãäåæçèéêëìíîïðñòóôõö÷øùúûüýþÿĀāĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİıĲĳĴĵĶķĸĹĺĻļĽľĿŀŁłŃńŅņŇňŉŊŋŌōŎŏŐőŒœŔŕŖŗŘřŚśŜŝŞşŠšŢţŤťŦŧŨũŪūŬŭŮůŰűŲųŴŵŶŷŸŹźŻżŽžſƒΑΒΓΔΕΖΗΘΙΚΛΜΝΞΟΠΡΣΤΥΦΧΨΩαβγδεζηθικλμνξοπρστυφχψωϕϵẠồ–—―‖‘’“”†‡•‥…‰′″※⁎⁰⁴⁵⁶⁷⁸⁹⁺⁻⁼⁽⁾ⁿ₀₁₂₃₄₅₆₇₈₉₊₋₌₍₎ₒ₠₡₤₧₩₪₫€₭₮₱₹₺₽₿℃℉ℎℏℑ℘ℜ™℧Åℵℶℷℸℹ⅀ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩⅪⅫⅰⅱⅲⅳⅴⅵⅶⅷⅸⅹⅺⅻ←↑→↓↔↕↖↗↘↙⇐⇑⇒⇓⇔⇕∀∂∃∅∆∇∈∉∏∑−∓∕∙√∝∞∠∥∧∨∩∪∫∬∮∴∵∶∷∼∽≈≌≒≠≡≤≥≦≧≪≫≮≯⊂⊃⊆⊇⊊⊋⊕⊗⊙⊥⋅①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳■□▲△▶▼▽◀◆◇○◎●☀☁☂★☆☎☐☑☒☔☕☠♀♂♠♡♣♤♥♦♻⚓⚠⚡✓✔✕✖✘✚✠✨✳✴✶✽❄❌❎❓❤　、。々〆〇〈〉《》「」『』【】〒〔〕〖〗〜〰〵〽㈱㊗㊙".split('');
+  const fileInput = document.getElementById('fileInput');
+  const uploadArea = document.getElementById('uploadArea');
+  const previewArea = document.getElementById('previewArea');
+  const preview = document.getElementById('preview');
+  const btnProcess = document.getElementById('btnProcess');
+  const statusBar = document.getElementById('statusBar');
+  const statusText = document.getElementById('statusText');
+  const resultCard = document.getElementById('resultCard');
+  const fieldsContainer = document.getElementById('fieldsContainer');
+  const textLines = document.getElementById('textLines');
+  const btnCopy = document.getElementById('btnCopy');
 
-let detSession = null;
-let recSession = null;
-let modelsLoaded = false;
-let currentFile = null;
-
-// ===== CARREGAR MODELOS =====
-async function loadModels() {
-  const statusEl = document.getElementById('modelStatus');
-  try {
-    // Usar CDN para os modelos (hospedaríamos no GitHub Pages)
-    // Por enquanto, vamos usar o servidor local pra servir os ONNX
-    const baseUrl = window.location.origin;
-    
-    statusEl.className = 'model-status loading';
-    statusEl.innerHTML = '<div class="spinner"></div><span>Carregando modelo de detecção...</span>';
-    
-    detSession = await ort.InferenceSession.create('/ocr/small_det.onnx', {
-      executionProviders: ['wasm'],
-      graphOptimizationLevel: 'all'
-    });
-    
-    statusEl.innerHTML = '<div class="spinner"></div><span>Carregando modelo de reconhecimento...</span>';
-    
-    recSession = await ort.InferenceSession.create('/ocr/small_rec.onnx', {
-      executionProviders: ['wasm'],
-      graphOptimizationLevel: 'all'
-    });
-    
-    modelsLoaded = true;
-    statusEl.className = 'model-status ready';
-    statusEl.innerHTML = '✅ Modelos ONNX carregados (det: 9.5MB + rec: 21MB)';
-    document.getElementById('btnProcess').disabled = !currentFile;
-  } catch (err) {
-    statusEl.className = 'model-status error';
-    statusEl.innerHTML = '❌ Erro ao carregar modelos: ' + err.message;
-    console.error(err);
-  }
-}
-
-// ===== PRÉ-PROCESSAMENTO =====
-function preprocessImage(img) {
-  const canvas = document.createElement('canvas');
-  const ctx = canvas.getContext('2d');
-  
-  // Redimensionar mantendo proporção (altura máxima 736 para detecção)
-  const maxSide = 736;
-  let w = img.width, h = img.height;
-  if (w > maxSide || h > maxSide) {
-    const scale = maxSide / Math.max(w, h);
-    w = Math.round(w * scale);
-    h = Math.round(h * scale);
-  }
-  
-  canvas.width = w;
-  canvas.height = h;
-  ctx.drawImage(img, 0, 0, w, h);
-  
-  const imageData = ctx.getImageData(0, 0, w, h);
-  const pixels = imageData.data;
-  
-  // Converter para tensor (NCHW) com normalização
-  const tensor = new Float32Array(1 * 3 * h * w);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const idx = (y * w + x) * 4;
-      const r = pixels[idx] / 255;
-      const g = pixels[idx + 1] / 255;
-      const b = pixels[idx + 2] / 255;
-      tensor[0 * h * w + y * w + x] = (r - MEAN[0]) / STD[0];
-      tensor[1 * h * w + y * w + x] = (g - MEAN[1]) / STD[1];
-      tensor[2 * h * w + y * w + x] = (b - MEAN[2]) / STD[2];
-    }
-  }
-  
-  return { tensor, width: w, height: h, canvas };
-}
-
-// ===== PÓS-PROCESSAMENTO DA DETECÇÃO (DBPostProcess simplificado) =====
-function postProcessDet(output, origW, origH, imgW, imgH) {
-  // output é um tensor [1, 1, H, W] com scores
-  const data = output.data;
-  const shape = output.dims;
-  const h = shape[2], w = shape[3];
-  
-  // Threshold
-  const thresh = 0.2;
-  const boxThresh = 0.4;
-  
-  // Encontrar regiões de texto (simplificado - bounding boxes)
-  const regions = [];
-  const visited = new Uint8Array(h * w);
-  
-  // Flood fill simples pra encontrar componentes conectados
-  function floodFill(sx, sy) {
-    const stack = [[sx, sy]];
-    const pixels = [];
-    let minX = sx, maxX = sx, minY = sy, maxY = sy;
-    
-    while (stack.length) {
-      const [cx, cy] = stack.pop();
-      const idx = cy * w + cx;
-      if (cx < 0 || cx >= w || cy < 0 || cy >= h || visited[idx] || data[idx] <= thresh) continue;
-      visited[idx] = 1;
-      pixels.push([cx, cy]);
-      minX = Math.min(minX, cx);
-      maxX = Math.max(maxX, cx);
-      minY = Math.min(minY, cy);
-      maxY = Math.max(maxY, cy);
-      stack.push([cx-1,cy], [cx+1,cy], [cx,cy-1], [cx,cy+1]);
-    }
-    
-    if (pixels.length < 3) return null;
-    
-    // Calcular score médio
-    let score = 0;
-    for (const [px, py] of pixels) score += data[py * w + px];
-    score /= pixels.length;
-    
-    if (score < boxThresh) return null;
-    
-    // Escalar de volta pra imagem original
-    const scaleX = origW / imgW;
-    const scaleY = origH / imgH;
-    
-    return {
-      box: [
-        minX * scaleX, minY * scaleY,
-        maxX * scaleX, minY * scaleY,
-        maxX * scaleX, maxY * scaleY,
-        minX * scaleX, maxY * scaleY
-      ],
-      score
+  fileInput.addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    currentFile = file;
+    const reader = new FileReader();
+    reader.onload = e => {
+      preview.src = e.target.result;
+      previewArea.style.display = 'block';
+      btnProcess.disabled = false;
     };
-  }
-  
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const idx = y * w + x;
-      if (!visited[idx] && data[idx] > thresh) {
-        const region = floodFill(x, y);
-        if (region) regions.push(region);
-      }
-    }
-  }
-  
-  // Ordenar por posição (cima pra baixo)
-  regions.sort((a, b) => a.box[1] - b.box[1]);
-  
-  return regions;
-}
-
-// ===== RECORTAR E RECONHECER =====
-async function recognizeRegions(canvas, regions) {
-  const ctx = canvas.getContext('2d');
-  const results = [];
-  
-  for (const region of regions) {
-    const [x1, y1, x2, y2, x3, y3, x4, y4] = region.box;
-    const rx = Math.max(0, Math.min(x1, x2, x3, x4));
-    const ry = Math.max(0, Math.min(y1, y2, y3, y4));
-    const rw = Math.min(canvas.width, Math.max(x1, x2, x3, x4)) - rx;
-    const rh = Math.min(canvas.height, Math.max(y1, y2, y3, y4)) - ry;
-    
-    if (rw < 2 || rh < 2) continue;
-    
-    // Recortar
-    const cropCanvas = document.createElement('canvas');
-    const cropCtx = cropCanvas.getContext('2d');
-    
-    // Redimensionar pra altura 48 (input do rec)
-    const recH = 48;
-    const recW = Math.max(32, Math.round(rw / rh * recH));
-    cropCanvas.width = recW;
-    cropCanvas.height = recH;
-    cropCtx.drawImage(canvas, rx, ry, rw, rh, 0, 0, recW, recH);
-    
-    // Converter pra tensor
-    const imgData = cropCtx.getImageData(0, 0, recW, recH);
-    const pixels = imgData.data;
-    const tensor = new Float32Array(1 * 3 * recH * recW);
-    for (let y = 0; y < recH; y++) {
-      for (let x = 0; x < recW; x++) {
-        const idx = (y * recW + x) * 4;
-        tensor[0 * recH * recW + y * recW + x] = pixels[idx] / 255;
-        tensor[1 * recH * recW + y * recW + x] = pixels[idx + 1] / 255;
-        tensor[2 * recH * recW + y * recW + x] = pixels[idx + 2] / 255;
-      }
-    }
-    
-    try {
-      const feeds = { x: new ort.Tensor('float32', tensor, [1, 3, recH, recW]) };
-      const outputs = await recSession.run(feeds);
-      const outData = outputs['fetch_name_0'].data;
-      const outShape = outputs['fetch_name_0'].dims;
-      
-      // Decodificar CTC
-      let text = '';
-      let prevChar = -1;
-      let confSum = 0;
-      let confCount = 0;
-      
-      for (let t = 0; t < outShape[1]; t++) {
-        let maxVal = -Infinity;
-        let maxIdx = 0;
-        for (let c = 0; c < outShape[2]; c++) {
-          const val = outData[t * outShape[2] + c];
-          if (val > maxVal) { maxVal = val; maxIdx = c; }
-        }
-        // Softmax aproximado pra confiança
-        const expSum = Array.from({length: outShape[2]}, (_, c) => Math.exp(outData[t * outShape[2] + c] - maxVal)).reduce((a,b) => a+b, 0);
-        const conf = Math.exp(maxVal) / expSum;
-        
-        if (maxIdx > 0 && maxIdx !== prevChar) {
-          text += CHARS[maxIdx - 1] || '';
-          confSum += conf;
-          confCount++;
-        }
-        prevChar = maxIdx;
-      }
-      
-      const avgConf = confCount > 0 ? confSum / confCount : 0;
-      
-      if (text.trim()) {
-        results.push({ text: text.trim(), confidence: avgConf });
-      }
-    } catch (err) {
-      console.warn('Erro no reconhecimento:', err);
-    }
-  }
-  
-  return results;
-}
-
-// ===== EXTRAIR CAMPOS =====
-function extractFields(texts) {
-  const campos = {};
-  const fullText = texts.join('\n');
-  
-  // CNPJ
-  for (const t of texts) {
-    const m = t.match(/\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/);
-    if (m) { campos['CNPJ'] = m[0]; break; }
-  }
-  
-  // Valor
-  for (const t of texts) {
-    const m = t.match(/R?\$?\s*[\d.]+\,[\d]{2}/);
-    if (m) { campos['VALOR'] = m[0].trim(); break; }
-  }
-  
-  // Data
-  for (const t of texts) {
-    const m = t.match(/\d{2}\w{3}\s*\d{4}/);
-    if (m) { campos['DATA'] = m[0]; break; }
-  }
-  
-  // Chave Pix
-  for (const t of texts) {
-    const m = t.match(/\+55\d{10,11}/);
-    if (m) { campos['CHAVE_PIX'] = m[0]; break; }
-  }
-  
-  return campos;
-}
-
-// ===== UI =====
-const fileInput = document.getElementById('fileInput');
-const uploadArea = document.getElementById('uploadArea');
-const previewArea = document.getElementById('previewArea');
-const preview = document.getElementById('preview');
-const btnProcess = document.getElementById('btnProcess');
-const statusBar = document.getElementById('statusBar');
-const statusText = document.getElementById('statusText');
-const resultCard = document.getElementById('resultCard');
-const fieldsContainer = document.getElementById('fieldsContainer');
-const textLines = document.getElementById('textLines');
-
-fileInput.addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (!file) return;
-  currentFile = file;
-  const reader = new FileReader();
-  reader.onload = e => {
-    preview.src = e.target.result;
-    previewArea.style.display = 'block';
-    btnProcess.disabled = !modelsLoaded;
-  };
-  reader.readAsDataURL(file);
-});
-
-uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
-uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
-uploadArea.addEventListener('drop', e => {
-  e.preventDefault();
-  uploadArea.classList.remove('dragover');
-  const file = e.dataTransfer.files[0];
-  if (file && file.type.startsWith('image/')) {
-    fileInput.files = e.dataTransfer.files;
-    fileInput.dispatchEvent(new Event('change'));
-  }
-});
-
-btnProcess.addEventListener('click', processImage);
-
-async function processImage() {
-  if (!currentFile || !modelsLoaded) return;
-  
-  statusBar.className = 'status-bar loading';
-  statusText.textContent = 'Pré-processando imagem...';
-  btnProcess.disabled = true;
-  
-  try {
-    // Carregar imagem
-    const img = await new Promise((resolve, reject) => {
-      const i = new Image();
-      i.onload = () => resolve(i);
-      i.onerror = reject;
-      i.src = URL.createObjectURL(currentFile);
-    });
-    
-    statusText.textContent = 'Detectando regiões de texto...';
-    const { tensor, width, height, canvas } = preprocessImage(img);
-    
-    const feeds = { x: new ort.Tensor('float32', tensor, [1, 3, height, width]) };
-    const detOutputs = await detSession.run(feeds);
-    
-    statusText.textContent = 'Processando regiões detectadas...';
-    const regions = postProcessDet(detOutputs['fetch_name_0'], img.width, img.height, width, height);
-    
-    if (regions.length === 0) {
-      throw new Error('Nenhuma região de texto detectada.');
-    }
-    
-    statusText.textContent = `Reconhecendo ${regions.length} regiões de texto...`;
-    const results = await recognizeRegions(canvas, regions);
-    
-    if (results.length === 0) {
-      throw new Error('Nenhum texto reconhecido.');
-    }
-    
-    statusBar.className = 'status-bar done';
-    statusText.textContent = `✅ ${results.length} linhas extraídas`;
-    showResults(results);
-  } catch (err) {
-    statusBar.className = 'status-bar error';
-    statusText.textContent = '❌ ' + err.message;
-    console.error(err);
-  } finally {
-    btnProcess.disabled = false;
-  }
-}
-
-function showResults(results) {
-  resultCard.classList.add('show');
-  
-  const texts = results.map(r => r.text);
-  const campos = extractFields(texts);
-  
-  let html = '';
-  for (const [key, val] of Object.entries(campos)) {
-    html += `<div class="field"><span class="label">${key}</span><span class="value">${val}</span></div>`;
-  }
-  fieldsContainer.innerHTML = html || '<p style="color:var(--muted)">Nenhum campo estruturado identificado.</p>';
-  
-  let linesHtml = '';
-  results.forEach(r => {
-    const pct = Math.round(r.confidence * 100);
-    const cls = pct >= 90 ? 'high' : pct >= 70 ? 'mid' : 'low';
-    linesHtml += `<div class="text-line">
-      <span>${r.text}</span>
-      <div class="conf-bar"><div class="fill ${cls}" style="width:${pct}%"></div></div>
-      <span style="font-size:0.7rem;color:var(--muted);width:28px;text-align:right">${pct}%</span>
-    </div>`;
+    reader.readAsDataURL(file);
   });
-  textLines.innerHTML = linesHtml;
-}
 
-// ===== INICIAR =====
-loadModels();
+  uploadArea.addEventListener('dragover', e => {
+    e.preventDefault();
+    uploadArea.classList.add('dragover');
+  });
+  uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+  uploadArea.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadArea.classList.remove('dragover');
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      fileInput.files = e.dataTransfer.files;
+      fileInput.dispatchEvent(new Event('change'));
+    }
+  });
+
+  btnProcess.addEventListener('click', processImage);
+
+  async function processImage() {
+    if (!currentFile) return;
+
+    statusBar.className = 'status-bar loading';
+    statusText.textContent = 'Enviando imagem para processamento...';
+    btnProcess.disabled = true;
+
+    const formData = new FormData();
+    formData.append('image', currentFile);
+
+    try {
+      const res = await fetch('/ocr', { method: 'POST', body: formData });
+      if (!res.ok) throw new Error('Erro no servidor: ' + res.status);
+      const data = await res.json();
+
+      statusBar.className = 'status-bar done';
+      statusText.textContent = `✅ ${data.linhas} linhas extraídas | Confiança: ${data.confianca}`;
+      showResults(data);
+    } catch (err) {
+      statusBar.className = 'status-bar error';
+      statusText.textContent = '❌ ' + err.message;
+    } finally {
+      btnProcess.disabled = false;
+    }
+  }
+
+  function showResults(data) {
+    resultCard.classList.add('show');
+
+    // Campos
+    let html = '';
+    const campos = data.campos || {};
+    for (const [key, val] of Object.entries(campos)) {
+      html += `<div class="field"><span class="label">${key}</span><span class="value">${val}</span></div>`;
+    }
+    fieldsContainer.innerHTML = html || '<p style="color:var(--muted)">Nenhum campo estruturado identificado.</p>';
+
+    // Linhas de texto
+    let linesHtml = '';
+    (data.linhas_detalhes || []).forEach(l => {
+      const pct = Math.round(l.confianca * 100);
+      const cls = pct >= 90 ? 'high' : pct >= 70 ? 'mid' : 'low';
+      linesHtml += `<div class="text-line">
+        <span>${l.texto}</span>
+        <div class="conf"><div class="bar ${cls}" style="width:${pct}%"></div></div>
+        <span style="font-size:0.7rem;color:var(--muted);width:30px;text-align:right">${pct}%</span>
+      </div>`;
+    });
+    textLines.innerHTML = linesHtml;
+  }
+
+  btnCopy.addEventListener('click', () => {
+    const texto = Array.from(textLines.querySelectorAll('.text-line span:first-child'))
+      .map(s => s.textContent).join('\n');
+    navigator.clipboard.writeText(texto).then(() => {
+      btnCopy.textContent = '✅ Copiado!';
+      setTimeout(() => { btnCopy.textContent = '📋 Copiar texto'; }, 2000);
+    });
+  });
 </script>
+
 </body>
 </html>
