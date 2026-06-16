@@ -407,7 +407,18 @@ async function processImage() {
     feeds[detInName] = new ort.Tensor('float32', tensor, [1, 3, height, width]);
     updateProgress(30, 'Rodando detecção de texto no modelo ONNX...', '');
     statusText.textContent = 'Rodando detecção...';
-    const detOutputs = await detSession.run(feeds);
+    let detOutputs;
+    try {
+      detOutputs = await detSession.run(feeds);
+    } catch (runErr) {
+      console.error('detSession.run ERROR:', runErr);
+      console.error('detSession.run name:', runErr.name);
+      console.error('detSession.run message:', runErr.message);
+      console.error('detSession.run code:', runErr.code);
+      console.error('Tensor shape:', [1, 3, height, width], 'size:', tensor.length);
+      console.error('Input name:', detInName);
+      throw runErr;
+    }
     // Pega o nome do primeiro output dinamicamente
     const detOutName = Array.isArray(detSession.outputNames) ? detSession.outputNames[0] : Object.values(detSession.outputNames)[0];
     console.log('Det input:', detInName, 'output:', detOutName, 'shape:', detOutputs[detOutName].dims);
