@@ -246,11 +246,13 @@ async function recognizeRegions(canvas, regions) {
     }
     
     try {
-      const recInName = Object.keys(recSession.inputNames)[0];
+      const recInNames = recSession.inputNames;
+      const recInName = Array.isArray(recInNames) ? recInNames[0] : Object.values(recInNames)[0];
       const feeds = {};
       feeds[recInName] = new ort.Tensor('float32', tensor, [1, 3, recH, recW]);
       const outputs = await recSession.run(feeds);
-      const recOutName = Object.keys(outputs)[0];
+      const recOutNames = Object.keys(outputs);
+      const recOutName = Array.isArray(recSession.outputNames) ? recSession.outputNames[0] : Object.values(recSession.outputNames)[0];
       const outData = outputs[recOutName].data;
       const outShape = outputs[recOutName].dims;
       
@@ -398,14 +400,16 @@ async function processImage() {
     statusText.textContent = 'Detectando regiões de texto...';
     const { tensor, width, height, canvas } = preprocessImage(img);
     
-    const detInName = Object.keys(detSession.inputNames)[0];
+    const detInNames = detSession.inputNames;
+    console.log('Det inputNames type:', typeof detInNames, 'value:', JSON.stringify(detInNames));
+    const detInName = Array.isArray(detInNames) ? detInNames[0] : Object.values(detInNames)[0];
     const feeds = {};
     feeds[detInName] = new ort.Tensor('float32', tensor, [1, 3, height, width]);
     updateProgress(30, 'Rodando detecção de texto no modelo ONNX...', '');
     statusText.textContent = 'Rodando detecção...';
     const detOutputs = await detSession.run(feeds);
     // Pega o nome do primeiro output dinamicamente
-    const detOutName = Object.keys(detOutputs)[0];
+    const detOutName = Array.isArray(detSession.outputNames) ? detSession.outputNames[0] : Object.values(detSession.outputNames)[0];
     console.log('Det input:', detInName, 'output:', detOutName, 'shape:', detOutputs[detOutName].dims);
     
     updateProgress(50, 'Processando regiões detectadas...', '');
