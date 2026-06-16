@@ -49,7 +49,7 @@ async function loadModels() {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all'
     });
-    console.log('Detecção outputs:', Object.keys(detSession.outputNames));
+    console.log('Detecção inputs:', Object.keys(detSession.inputNames), 'outputs:', Object.keys(detSession.outputNames));
     
     updateProgress(40, 'Detecção carregada. Baixando modelo de reconhecimento (21 MB)...', '9.5 / 30.5 MB');
     statusEl.innerHTML = '<div class="spinner"></div><span>Baixando reconhecimento (21MB)...</span>';
@@ -68,7 +68,7 @@ async function loadModels() {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all'
     });
-    console.log('Reconhecimento outputs:', Object.keys(recSession.outputNames));
+    console.log('Reconhecimento inputs:', Object.keys(recSession.inputNames), 'outputs:', Object.keys(recSession.outputNames));
     
     updateProgress(100, '✅ Modelos prontos!', '30.5 / 30.5 MB');
     modelsLoaded = true;
@@ -244,7 +244,9 @@ async function recognizeRegions(canvas, regions) {
     }
     
     try {
-      const feeds = { x: new ort.Tensor('float32', tensor, [1, 3, recH, recW]) };
+      const recInName = Object.keys(recSession.inputNames)[0];
+      const feeds = {};
+      feeds[recInName] = new ort.Tensor('float32', tensor, [1, 3, recH, recW]);
       const outputs = await recSession.run(feeds);
       const recOutName = Object.keys(outputs)[0];
       const outData = outputs[recOutName].data;
@@ -394,13 +396,15 @@ async function processImage() {
     statusText.textContent = 'Detectando regiões de texto...';
     const { tensor, width, height, canvas } = preprocessImage(img);
     
-    const feeds = { x: new ort.Tensor('float32', tensor, [1, 3, height, width]) };
+    const detInName = Object.keys(detSession.inputNames)[0];
+    const feeds = {};
+    feeds[detInName] = new ort.Tensor('float32', tensor, [1, 3, height, width]);
     updateProgress(30, 'Rodando detecção de texto no modelo ONNX...', '');
     statusText.textContent = 'Rodando detecção...';
     const detOutputs = await detSession.run(feeds);
     // Pega o nome do primeiro output dinamicamente
     const detOutName = Object.keys(detOutputs)[0];
-    console.log('Det output name:', detOutName, 'shape:', detOutputs[detOutName].dims);
+    console.log('Det input:', detInName, 'output:', detOutName, 'shape:', detOutputs[detOutName].dims);
     
     updateProgress(50, 'Processando regiões detectadas...', '');
     statusText.textContent = 'Processando regiões detectadas...';
@@ -424,7 +428,8 @@ async function processImage() {
     showResults(results);
   } catch (err) {
     statusBar.className = 'status-bar error';
-    statusText.textContent = '❌ ' + err.message;
+    const errMsg = (err && err.message) ? err.message : (err ? err.toString() : 'Erro desconhecido');
+    statusText.textContent = '❌ ' + errMsg;
     console.error(err);
   } finally {
     btnProcess.disabled = false;
