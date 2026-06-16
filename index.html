@@ -108,7 +108,7 @@
 
 <header>
   <h1>📄 OCR Comprovante</h1>
-  <p>PP-OCRv6 Small — 100% no navegador via ONNX Runtime Web</p>
+  <p>PP-OCRv6 Tiny — 100% no navegador via ONNX Runtime Web</p>
 </header>
 
 <div class="card">
@@ -169,21 +169,21 @@ async function loadModels() {
     statusEl.className = 'model-status loading';
     statusEl.innerHTML = '<div class="spinner"></div><span>Carregando modelo de detecção...</span>';
     
-    detSession = await ort.InferenceSession.create('/ocr/small_det.onnx', {
+    detSession = await ort.InferenceSession.create('/ocr/tiny_det.onnx', {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all'
     });
     
     statusEl.innerHTML = '<div class="spinner"></div><span>Carregando modelo de reconhecimento...</span>';
     
-    recSession = await ort.InferenceSession.create('/ocr/small_rec.onnx', {
+    recSession = await ort.InferenceSession.create('/ocr/tiny_rec.onnx', {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all'
     });
     
     modelsLoaded = true;
     statusEl.className = 'model-status ready';
-    statusEl.innerHTML = '✅ Modelos ONNX carregados (det: 9.5MB + rec: 21MB)';
+    statusEl.innerHTML = '✅ Modelos ONNX carregados (det: 1.7MB + rec: 4.3MB)';
     document.getElementById('btnProcess').disabled = !currentFile;
   } catch (err) {
     statusEl.className = 'model-status error';
