@@ -216,8 +216,12 @@ async function loadModels() {
     updateProgress(5, 'Baixando modelo de detecção (9.5 MB)...', '0 / 30.5 MB');
     statusEl.innerHTML = '<div class="spinner"></div><span>Baixando detecção (9.5MB)...</span>';
     
+    console.log('Iniciando download: small_det.onnx');
     const detResponse = await fetch('/ocr/small_det.onnx');
+    if (!detResponse.ok) throw new Error('Falha ao baixar detecção: HTTP ' + detResponse.status);
+    console.log('Download detecção concluído, tamanho:', detResponse.headers.get('content-length'));
     const detBlob = await detResponse.blob();
+    console.log('Blob detecção:', detBlob.size, 'bytes');
     updateProgress(35, 'Modelo de detecção baixado. Carregando no ONNX Runtime...', '9.5 / 30.5 MB');
     statusEl.innerHTML = '<div class="spinner"></div><span>Carregando detecção no ONNX Runtime...</span>';
     
@@ -230,8 +234,12 @@ async function loadModels() {
     updateProgress(40, 'Detecção carregada. Baixando modelo de reconhecimento (21 MB)...', '9.5 / 30.5 MB');
     statusEl.innerHTML = '<div class="spinner"></div><span>Baixando reconhecimento (21MB)...</span>';
     
+    console.log('Iniciando download: small_rec.onnx');
     const recResponse = await fetch('/ocr/small_rec.onnx');
+    if (!recResponse.ok) throw new Error('Falha ao baixar reconhecimento: HTTP ' + recResponse.status);
+    console.log('Download reconhecimento concluído');
     const recBlob = await recResponse.blob();
+    console.log('Blob reconhecimento:', recBlob.size, 'bytes');
     updateProgress(75, 'Modelo de reconhecimento baixado. Carregando no ONNX Runtime...', '30.5 / 30.5 MB');
     statusEl.innerHTML = '<div class="spinner"></div><span>Carregando reconhecimento no ONNX Runtime...</span>';
     
@@ -248,9 +256,16 @@ async function loadModels() {
     document.getElementById('btnProcess').disabled = !currentFile;
   } catch (err) {
     statusEl.className = 'model-status error';
-    statusEl.innerHTML = '❌ Erro: ' + err.message;
-    updateProgress(0, '❌ ' + err.message, 'Falhou');
-    console.error(err);
+    const msg = err.message || err.toString() || 'Erro desconhecido';
+    statusEl.innerHTML = '❌ Erro: ' + msg;
+    updateProgress(0, '❌ ' + msg, 'Falhou');
+    console.error('Erro detalhado:', err);
+    console.error('Stack:', err.stack);
+    // Mostrar erro na tela
+    const errDiv = document.createElement('div');
+    errDiv.style.cssText = 'margin-top:0.5rem;padding:0.5rem;background:rgba(239,68,68,0.1);border-radius:6px;font-size:0.75rem;color:var(--red);word-break:break-all;font-family:monospace;';
+    errDiv.textContent = err.stack || err.message || 'Erro desconhecido';
+    statusEl.parentNode.appendChild(errDiv);
   }
 }
 
