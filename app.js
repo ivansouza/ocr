@@ -8,7 +8,7 @@ const STD = [0.229, 0.224, 0.225];
 let CHARS = [];
 
 // Carregar dicionário
-fetch('/ocr/chars.json').then(r=>r.json()).then(d=>{CHARS=d;console.log('Dict:',CHARS.length)}).catch(e=>console.error('Dict:',e));
+fetch('chars.json').then(r=>r.json()).then(d=>{CHARS=d;console.log('Dict:',CHARS.length)}).catch(e=>console.error('Dict:',e));
 
 let detSession = null;
 let recSession = null;
@@ -49,6 +49,7 @@ async function loadModels() {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all'
     });
+    console.log('Detecção outputs:', Object.keys(detSession.outputNames));
     
     updateProgress(40, 'Detecção carregada. Baixando modelo de reconhecimento (21 MB)...', '9.5 / 30.5 MB');
     statusEl.innerHTML = '<div class="spinner"></div><span>Baixando reconhecimento (21MB)...</span>';
@@ -67,6 +68,7 @@ async function loadModels() {
       executionProviders: ['wasm'],
       graphOptimizationLevel: 'all'
     });
+    console.log('Reconhecimento outputs:', Object.keys(recSession.outputNames));
     
     updateProgress(100, '✅ Modelos prontos!', '30.5 / 30.5 MB');
     modelsLoaded = true;
@@ -244,8 +246,9 @@ async function recognizeRegions(canvas, regions) {
     try {
       const feeds = { x: new ort.Tensor('float32', tensor, [1, 3, recH, recW]) };
       const outputs = await recSession.run(feeds);
-      const outData = outputs['fetch_name_0'].data;
-      const outShape = outputs['fetch_name_0'].dims;
+      const recOutName = Object.keys(outputs)[0];
+      const outData = outputs[recOutName].data;
+      const outShape = outputs[recOutName].dims;
       
       // Decodificar CTC (índice 0 = blank)
       let text = '';
@@ -395,10 +398,13 @@ async function processImage() {
     updateProgress(30, 'Rodando detecção de texto no modelo ONNX...', '');
     statusText.textContent = 'Rodando detecção...';
     const detOutputs = await detSession.run(feeds);
+    // Pega o nome do primeiro output dinamicamente
+    const detOutName = Object.keys(detOutputs)[0];
+    console.log('Det output name:', detOutName, 'shape:', detOutputs[detOutName].dims);
     
     updateProgress(50, 'Processando regiões detectadas...', '');
     statusText.textContent = 'Processando regiões detectadas...';
-    const regions = postProcessDet(detOutputs['fetch_name_0'], img.width, img.height, width, height);
+    const regions = postProcessDet(detOutputs[detOutName], img.width, img.height, width, height);
     
     if (regions.length === 0) {
       throw new Error('Nenhuma região de texto detectada.');
