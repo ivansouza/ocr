@@ -47,7 +47,8 @@ async function loadModels() {
     const detArrayBuffer = await detBlob.arrayBuffer();
     detSession = await ort.InferenceSession.create(detArrayBuffer, {
       executionProviders: ['wasm'],
-      graphOptimizationLevel: 'all'
+      graphOptimizationLevel: 'all',
+      enableCpuMemArena: false
     });
     console.log('Detecção inputs:', Object.keys(detSession.inputNames), 'outputs:', Object.keys(detSession.outputNames));
     
@@ -66,7 +67,8 @@ async function loadModels() {
     const recArrayBuffer = await recBlob.arrayBuffer();
     recSession = await ort.InferenceSession.create(recArrayBuffer, {
       executionProviders: ['wasm'],
-      graphOptimizationLevel: 'all'
+      graphOptimizationLevel: 'all',
+      enableCpuMemArena: false
     });
     console.log('Reconhecimento inputs:', Object.keys(recSession.inputNames), 'outputs:', Object.keys(recSession.outputNames));
     
