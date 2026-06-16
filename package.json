@@ -1,0 +1,23 @@
+{
+  "name": "ocr",
+  "version": "1.0.0",
+  "description": "OCR de comprovantes usando PP-OCRv6 Tiny rodando 100% no navegador via ONNX Runtime Web.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ivansouza/ocr.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ivansouza/ocr/issues"
+  },
+  "homepage": "https://github.com/ivansouza/ocr#readme",
+  "dependencies": {
+    "playwright": "^1.61.0"
+  }
+}
