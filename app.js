@@ -265,12 +265,17 @@ async function recognizeRegions(canvas, regions) {
         const conf = Math.exp(maxVal) / expSum;
         
         // CTC blank = índice 0. Pular blanks e repetições
+        // Limitar ao tamanho real do dicionário (ignorar padding)
         if (maxIdx > 0 && maxIdx !== prevChar) {
           const charIdx = maxIdx - 1;
           if (charIdx < CHARS.length) {
-            text += CHARS[charIdx];
-            confSum += conf;
-            confCount++;
+            const ch = CHARS[charIdx];
+            // Ignorar caracteres de padding (não latinos) - manter apenas os que fazem sentido pra PT-BR
+            if (ch.charCodeAt(0) < 128 || (ch.charCodeAt(0) >= 192 && ch.charCodeAt(0) <= 255) || ch === '¢' || ch === '£' || ch === '¤' || ch === '¥' || ch === '€' || ch === 'R' || ch === '$') {
+              text += ch;
+              confSum += conf;
+              confCount++;
+            }
           }
         }
         prevChar = maxIdx;
