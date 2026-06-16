@@ -46,7 +46,7 @@ async function loadModels() {
     
     const detArrayBuffer = await detBlob.arrayBuffer();
     detSession = await ort.InferenceSession.create(detArrayBuffer, {
-      executionProviders: ['wasm'],
+      executionProviders: ['webgl'],
       graphOptimizationLevel: 'all',
       enableCpuMemArena: false
     });
@@ -66,7 +66,7 @@ async function loadModels() {
     
     const recArrayBuffer = await recBlob.arrayBuffer();
     recSession = await ort.InferenceSession.create(recArrayBuffer, {
-      executionProviders: ['wasm'],
+      executionProviders: ['webgl'],
       graphOptimizationLevel: 'all',
       enableCpuMemArena: false
     });
