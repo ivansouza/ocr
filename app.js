@@ -73,6 +73,9 @@ async function loadModels() {
     statusEl.className = 'model-status ready';
     statusEl.innerHTML = '✅ Modelos ONNX carregados (det: 9.5MB + rec: 21MB)';
     document.getElementById('btnProcess').disabled = !currentFile;
+    // Esconder o spinner antigo
+    const oldSpinner = document.querySelector('.model-status.loading');
+    if (oldSpinner) oldSpinner.className = 'model-status ready';
   } catch (err) {
     statusEl.className = 'model-status error';
     const msg = err.message || err.toString() || 'Erro desconhecido';
@@ -270,8 +273,12 @@ async function recognizeRegions(canvas, regions) {
           const charIdx = maxIdx - 1;
           if (charIdx < CHARS.length) {
             const ch = CHARS[charIdx];
-            // Ignorar caracteres de padding (não latinos) - manter apenas os que fazem sentido pra PT-BR
-            if (ch.charCodeAt(0) < 128 || (ch.charCodeAt(0) >= 192 && ch.charCodeAt(0) <= 255) || ch === '¢' || ch === '£' || ch === '¤' || ch === '¥' || ch === '€' || ch === 'R' || ch === '$') {
+            // Manter apenas caracteres úteis para PT-BR (ignorar chinês, japonês, etc.)
+            const code = ch.charCodeAt(0);
+            const isLatin = (code >= 32 && code <= 126) || // ASCII imprimível
+                           (code >= 192 && code <= 255) || // Latin-1 Supplement (acentos)
+                           code === 10 || code === 13;    // newline
+            if (isLatin) {
               text += ch;
               confSum += conf;
               confCount++;
